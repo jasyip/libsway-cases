@@ -1,19 +1,20 @@
 from std/json import parseJson, getStr,
   JsonNode,
-  JObject, JString, JInt, JBool, JNull
+  JNull, JBool, JInt, JFloat, JString, JObject, JArray
 from std/logging import newConsoleLogger, addHandler, log,
   debug, info, notice, error,
   Level,
   lvlAll, lvlWarn, lvlError
+from std/math import almostEqual
 from std/osproc import startProcess, close, waitForExit, errorStream, outputStream,
   Process, ProcessOption
-from std/sequtils import toSeq, any, all
+from std/sequtils import toSeq, any, allIt, zip
 from std/strtabs import StringTableRef
 from std/streams import readAll
 from std/strformat import `&`
 from std/sugar import `=>`
 from std/re import contains, Regex
-from std/tables import contains, `[]`
+from std/tables import contains, len, keys, values, `[]`, OrderedTable
 
 
 
@@ -22,18 +23,25 @@ type
     ckNull,
     ckBool,
     ckInt,
+    ckFloat,
     ckString,
+    ckObject,
+    ckArray,
     ckRegex,
 
-  Criteria* = object
-    keys: seq[string]
-    optional: bool
-    case kind: CriteriaKind
+  Criteria* {.inheritable.} = object
+    keys*: seq[string]
+    optional*: bool
+    case kind*: CriteriaKind
     of ckNull: discard
-    of ckBool: bval: bool
-    of ckInt: num: int
-    of ckString: str: string
-    of ckRegex:  reg: Regex
+    of ckBool: bval*: bool
+    of ckInt: num*: BiggestInt
+    of ckFloat: fnum*: float
+    of ckString: str*: string
+    of ckObject: fields*: OrderedTable[string, Criteria]
+    of ckArray: elems*: seq[Criteria]
+    of ckRegex: reg*: Regex
+
 
 
 
@@ -77,7 +85,7 @@ func initOptCriteria*(reg: Regex, keys: varargs[string]): Criteria =
 
 
 
-func matches(criteria: Criteria; node: JsonNode): bool =
+method matches*(criteria: Criteria; node: JsonNode): bool {.base.} =
   if node.kind == JNull and (criteria.kind == ckNull or criteria.optional):
     return true
 
@@ -85,12 +93,28 @@ func matches(criteria: Criteria; node: JsonNode): bool =
   of ckNull: false
   of ckBool: node.kind == JBool and node.bval == criteria.bval
   of ckInt: node.kind == JInt and node.num == criteria.num
+  of ckFloat: node.kind == JFloat and almostEqual(node.fnum, criteria.fnum)
   of ckString: node.kind == JString and node.str == criteria.str
+  of ckObject:
+    if  node.kind != JObject or
+        criteria.fields.len != node.fields.len or
+        toSeq(criteria.fields.keys) != toSeq(node.fields.keys):
+      return false
+
+    allIt(zip(toSeq(criteria.fields.values), toSeq(node.fields.values)), it[0].matches(it[1]))
+
+  of ckArray:
+    if  node.kind != JArray or
+        criteria.elems.len != node.elems.len:
+      return false
+
+    allIt(zip(criteria.elems, node.elems), it[0].matches(it[1]))
+
   of ckRegex: node.kind == JString and node.str.contains(criteria.reg)
 
 
 
-proc eval*(criteria: Criteria, node: JsonNode): bool =
+proc eval(criteria: Criteria, node: JsonNode): bool =
 
   var field = node
   for key in criteria.keys:
@@ -183,4 +207,4 @@ proc getFocusedWindow*(): JsonNode =
     errorExit "Couldn't find root tree"
 
 proc matchesAny*(criterias: openArray[seq[Criteria]]; node: JsonNode): bool =
-  return any(criterias, (criteriaSet) => all(criteriaSet, (criteria) => criteria.eval(node)))
+  return any(criterias, (criteriaSet) => allIt(criteriaSet, it.eval(node)))
