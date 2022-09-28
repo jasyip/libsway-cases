@@ -7,4 +7,4 @@ license       = "GPL-2.0-only"
 
 # Dependencies
 
-requires "nim >= 0.20 & < 2"
+requires "nim >= 1.6 & < 2"
