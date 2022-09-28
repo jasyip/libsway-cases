@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.0.0"
+version       = "1.1.0"
 author        = "Jason Yip"
 description   = "Make special exceptions for certain windows and sway commands"
 license       = "GPL-2.0-only"

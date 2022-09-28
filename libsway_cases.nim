@@ -93,6 +93,8 @@ func matches(criteria: Criteria; node: JsonNode): bool =
 func eval*(criteria: Criteria, node: JsonNode): bool =
   var field = node
   for key in criteria.keys:
+    if not (field.kind == JObject and key in field.fields):
+      return false
     field = field.fields[key]
 
   return matches(criteria, field)
