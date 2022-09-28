@@ -2,7 +2,7 @@ from std/json import parseJson, getStr,
   JsonNode,
   JObject, JString, JInt, JBool, JNull
 from std/logging import newConsoleLogger, addHandler, log,
-  info, notice, error,
+  debug, info, notice, error,
   Level,
   lvlAll, lvlWarn, lvlError
 from std/osproc import startProcess, close, waitForExit, errorStream, outputStream,
@@ -90,10 +90,12 @@ func matches(criteria: Criteria; node: JsonNode): bool =
 
 
 
-func eval*(criteria: Criteria, node: JsonNode): bool =
+proc eval*(criteria: Criteria, node: JsonNode): bool =
+
   var field = node
   for key in criteria.keys:
     if not (field.kind == JObject and key in field.fields):
+      debug &"""{criteria.keys} not present in '{node.fields["name"].getStr()}'"""
       return false
     field = field.fields[key]
 
@@ -180,5 +182,5 @@ proc getFocusedWindow*(): JsonNode =
   else:
     errorExit "Couldn't find root tree"
 
-func matchesAny*(criterias: openArray[seq[Criteria]]; node: JsonNode): bool =
+proc matchesAny*(criterias: openArray[seq[Criteria]]; node: JsonNode): bool =
   return any(criterias, (criteriaSet) => all(criteriaSet, (criteria) => criteria.eval(node)))
