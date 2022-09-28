@@ -1,6 +1,6 @@
 from std/json import parseJson, getStr,
   JsonNode,
-  JString, JInt, JBool, JNull
+  JObject, JString, JInt, JBool, JNull
 from std/logging import newConsoleLogger, addHandler, log,
   info, notice, error,
   Level,
