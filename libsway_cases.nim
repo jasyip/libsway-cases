@@ -12,14 +12,15 @@ from std/sequtils import toSeq, any, allIt, zip
 from std/strtabs import StringTableRef
 from std/streams import readAll
 from std/strformat import `&`
+from std/strutils import validIdentifier
 from std/sugar import `=>`
 from std/re import contains, Regex
-from std/tables import contains, len, keys, values, `[]`, OrderedTable
+from std/tables import contains, len, keys, values, `[]`, `==`, OrderedTable
 
 
 
 type
-  CriteriaKind = enum
+  CriteriaKind* = enum
     ckNull,
     ckBool,
     ckInt,
@@ -44,68 +45,132 @@ type
 
 
 
+template initCriteria(
+                      keys: varargs[string];
+                      optionalVal: bool;
+                      kindVal: CriteriaKind;
+                      body: untyped
+                     ): typed {.dirty.}=
+
+  result = Criteria(keys: toSeq(keys), optional: optionalVal, kind: kindVal)
+  doAssert keys.len > 0, "Can't have 0 keys for a null criteria"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
+  body
+
 
 func initNullCriteria*(keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), kind: ckNull)
   doAssert keys.len > 0, "Can't have 0 keys for a null criteria"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 
 func initCriteria*(bval: bool, keys: varargs[string]): Criteria =
+  initCriteria(keys, false, ckBool): result.bval = bval
+
+#[
+func initCriteria*(bval: bool, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckBool, bval: bval)
   doAssert keys.len > 0, &"Can't have 0 keys for '{bval}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
+]#
 
 func initCriteria*(num: SomeInteger, keys: varargs[string]): Criteria =
-  result = Criteria(keys: toSeq(keys), optional: false, kind: ckInt, num: num)
+  result = Criteria(keys: toSeq(keys), optional: false, kind: ckInt, num: BiggestInt(num))
   doAssert keys.len > 0, &"Can't have 0 keys for '{num}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initCriteria*(fnum: SomeFloat, keys: varargs[string]): Criteria =
-  result = Criteria(keys: toSeq(keys), optional: false, kind: ckFloat, fnum: fnum)
+  result = Criteria(keys: toSeq(keys), optional: false, kind: ckFloat, fnum: BiggestFloat(fnum))
   doAssert keys.len > 0, &"Can't have 0 keys for '{fnum}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initCriteria*(str: string, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckString, str: str)
   doAssert keys.len > 0, &"Can't have 0 keys for '{str}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initCriteria*(fields: OrderedTable[string, Criteria], keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckObject, fields: fields)
   doAssert keys.len > 0, &"Can't have 0 keys for '{fields}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initCriteria*(elems: openArray[Criteria], keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckArray, elems: toSeq(elems))
   doAssert keys.len > 0, &"Can't have 0 keys for '{elems}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initCriteria*(reg: Regex, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckRegex, reg: reg)
   doAssert keys.len > 0, &"Can't have 0 keys for a regex criteria'"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 
 func initOptCriteria*(bval: bool, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckBool, bval: bval)
   doAssert keys.len > 0, &"Can't have 0 keys for '{bval}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initOptCriteria*(num: SomeInteger, keys: varargs[string]): Criteria =
-  result = Criteria(keys: toSeq(keys), optional: true, kind: ckInt, num: num)
+  result = Criteria(keys: toSeq(keys), optional: true, kind: ckInt, num: BiggestInt(num))
   doAssert keys.len > 0, &"Can't have 0 keys for '{num}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initOptCriteria*(fnum: SomeFloat, keys: varargs[string]): Criteria =
-  result = Criteria(keys: toSeq(keys), optional: true, kind: ckFloat, fnum: fnum)
+  result = Criteria(keys: toSeq(keys), optional: true, kind: ckFloat, fnum: BiggestFloat(fnum))
   doAssert keys.len > 0, &"Can't have 0 keys for '{fnum}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initOptCriteria*(str: string, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckString, str: str)
   doAssert keys.len > 0, &"Can't have 0 keys for '{str}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initOptCriteria*(fields: OrderedTable[string, Criteria], keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckObject, fields: fields)
   doAssert keys.len > 0, &"Can't have 0 keys for '{fields}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initOptCriteria*(elems: openArray[Criteria], keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckArray, elems: toSeq(elems))
   doAssert keys.len > 0, &"Can't have 0 keys for '{elems}''"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 func initOptCriteria*(reg: Regex, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckRegex, reg: reg)
   doAssert keys.len > 0, &"Can't have 0 keys for a regex criteria'"
+  doAssert(keys.allIt(it.len > 0 and validIdentifier(it)),
+           "All keys must be non-empty and alphabetic",
+          )
 
 
 
@@ -135,6 +200,20 @@ method matches*(criteria: Criteria; node: JsonNode): bool {.base.} =
     allIt(zip(criteria.elems, node.elems), it[0].matches(it[1]))
 
   of ckRegex: node.kind == JString and node.str.contains(criteria.reg)
+
+
+method `==`*(a, b: Criteria): bool {.base.} =
+  if not (a.kind == b.kind and a.optional == b.optional): return false
+
+  case a.kind:
+  of ckNull: return true
+  of ckBool: return a.bval == b.bval
+  of ckInt: return a.num == b.num
+  of ckFloat: return a.fnum == b.fnum
+  of ckString: return a.str == b.str
+  of ckObject: return a.fields == b.fields
+  of ckArray: return a.elems.len == b.elems.len and allIt(zip(a.elems, b.elems), it[0] == it[1])
+  of ckRegex: doAssert(false, "Comparing two regex criteria unsupported")
 
 
 
