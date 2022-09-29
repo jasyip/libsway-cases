@@ -12,6 +12,7 @@ from std/sequtils import toSeq, any, allIt, zip
 from std/strtabs import StringTableRef
 from std/streams import readAll
 from std/strformat import `&`
+from std/strutils import isLowerAscii
 from std/sugar import `=>`
 from std/re import contains, Regex
 from std/tables import contains, len, keys, values, `[]`, `==`, OrderedTable
@@ -41,63 +42,64 @@ type
 
 
 template initCriteria(
+                      firstKey: string;
+                      keys: openArray[string];
                       optionalVal: bool;
                       kindVal: CriteriaKind;
-                     ) {.dirty.} =
+                     ) =
   result = Criteria(keys: toSeq(keys), optional: optionalVal, kind: kindVal)
-  doAssert(keys.len > 0, "Must have at least one key")
-  for key in keys:
+  result.keys.insert(firstKey, 0)
+  for key in result.keys:
     doAssert(key.len > 0, "All keys must be non-empty")
     for letter in key:
-      doAssert(letter == '_' or 
-               (letter >= 'a' and letter <= 'z'), 
+      doAssert(letter == '_' or isLowerAscii(letter),
                "All keys must be non-empty and alphabetic",
               )
 
 
-func initNullCriteria*(keys: varargs[string]): Criteria =
-  initCriteria(false, ckNull)
+func initNullCriteria*(firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, false, ckNull)
 
 
-func initCriteria*(bval: bool; keys: varargs[string]): Criteria =
-  initCriteria(false, ckBool)
+func initCriteria*(bval: bool; firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, false, ckBool)
   result.bval = bval
 
-func initCriteria*(num: SomeInteger; keys: varargs[string]): Criteria =
-  initCriteria(false, ckInt)
+func initCriteria*(num: SomeInteger; firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, false, ckInt)
   result.num = BiggestInt(num)
 
-func initCriteria*(fnum: SomeFloat; keys: varargs[string]): Criteria =
-  initCriteria(false, ckFloat)
+func initCriteria*(fnum: SomeFloat; firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, false, ckFloat)
   result.fnum = BiggestFloat(fnum)
 
-func initCriteria*(str: string, keys: varargs[string]): Criteria =
-  initCriteria(false, ckString)
+func initCriteria*(str: string, firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, false, ckString)
   result.str = str
 
-func initCriteria*(reg: Regex, keys: varargs[string]): Criteria =
-  initCriteria(false, ckRegex)
+func initCriteria*(reg: Regex, firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, false, ckRegex)
   result.reg = reg
 
 
-func initOptCriteria*(bval: bool; keys: varargs[string]): Criteria =
-  initCriteria(true, ckBool)
+func initOptCriteria*(bval: bool; firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, true, ckBool)
   result.bval = bval
 
-func initOptCriteria*(num: SomeInteger; keys: varargs[string]): Criteria =
-  initCriteria(true, ckInt)
+func initOptCriteria*(num: SomeInteger; firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, true, ckInt)
   result.num = BiggestInt(num)
 
-func initOptCriteria*(fnum: SomeFloat; keys: varargs[string]): Criteria =
-  initCriteria(true, ckFloat)
+func initOptCriteria*(fnum: SomeFloat; firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, true, ckFloat)
   result.fnum = BiggestFloat(fnum)
 
-func initOptCriteria*(str: string, keys: varargs[string]): Criteria =
-  initCriteria(true, ckString)
+func initOptCriteria*(str: string, firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, true, ckString)
   result.str = str
 
-func initOptCriteria*(reg: Regex, keys: varargs[string]): Criteria =
-  initCriteria(true, ckRegex)
+func initOptCriteria*(reg: Regex, firstKey: string; keys: varargs[string]): Criteria =
+  initCriteria(firstKey, keys, true, ckRegex)
   result.reg = reg
 
 

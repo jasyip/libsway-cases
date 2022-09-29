@@ -12,13 +12,13 @@ suite "creating valid criteria":
 
   template testCriteria(fun: typed; e: CriteriaKind; value: typed; body: untyped) =
     for keys in [
-                 @["a"],
-                 @["a", "b"],
-                 @["a", "b", "c_"],
+                 @[],
+                 @["b"],
+                 @["b", "c_"],
                 ]:
-      let c {.inject.} = fun(value, keys)
+      let c {.inject.} = fun(value, "a", keys)
       check:
-        c.keys == keys
+        c.keys == @["a"] & keys
         c.kind == e
       body
 
@@ -58,15 +58,6 @@ suite "creating valid criteria":
 
 
 suite "creating invalid criteria":
-
-  test "0 keys":
-    expect AssertionDefect:
-      discard initNullCriteria()
-      discard initCriteria(false)
-      discard initCriteria(0)
-      discard initCriteria(0.0)
-      discard initCriteria("")
-      discard initCriteria(re"")
 
   test "empty string keys":
     expect AssertionDefect:
