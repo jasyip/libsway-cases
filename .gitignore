@@ -3,4 +3,4 @@ nimblecache/
 htmldocs/
 
 tests/
-!tests/**/*.*
+tests-bin/

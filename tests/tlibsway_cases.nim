@@ -1,7 +1,7 @@
 import std/unittest
 
-import std/[sequtils, tables, re]
-import std/sugar
+import std/[sequtils, strutils, tables, re]
+import std/json
 
 
 import libsway_cases
@@ -10,15 +10,19 @@ import libsway_cases
 
 suite "creating valid criteria":
 
-  template testCriteria(fun: untyped; e: CriteriaKind; value: untyped; body: untyped) =
-    for keySeq in [@["a"], @["a", "b"], @["a", "b", "c"]]:
-      let c {.inject.} = fun(value, keySeq)
+  template testCriteria(fun: typed; e: CriteriaKind; value: typed; body: untyped) =
+    for keys in [
+                 @["a"],
+                 @["a", "b"],
+                 @["a", "b", "c_"],
+                ]:
+      let c {.inject.} = fun(value, keys)
       check:
-        c.keys == keySeq
+        c.keys == keys
         c.kind == e
       body
 
-  template testCriteria(e: CriteriaKind; value: untyped; body: untyped) =
+  template testCriteria(e: CriteriaKind; value: typed; body: untyped) =
     testCriteria(initCriteria, e, value):
       check not c.optional
       body
@@ -48,34 +52,10 @@ suite "creating valid criteria":
     for s in ["", "a", "ab"]:
       testCriteria(ckString, s, check c.str == s)
 
-  test "object criteria":
-    let tableList = collect(newSeq):
-      for t in [@[("a", @["", "a"])], @[("a", @["", "a", "b"]), ("b", @["", "b"])]]:
-        collect(initOrderedTable):
-          for p in t:
-            {p[0] : initCriteria(p[1][0], p[1][1..^1])}
-
-    for t in tableList:
-      testCriteria(ckObject, t):
-        check toSeq(c.fields.keys) == toSeq(t.keys)
-        for (cv, tv) in zip(toSeq(c.fields.values), toSeq(t.values)):
-          check cv == tv
-
-  test "array criteria":
-    let l = [
-             @[@["", "a"], @["", "a", "b"], @["", "b"],],
-             @[],
-            ].mapIt(it.map((c) => initCriteria(c[0], c[1..^1])))
-
-    for a in l:
-      testCriteria(ckArray, a):
-        check c.elems.len == a.len
-        for (cv, av) in zip(c.elems, a):
-          check cv == av
-
   test "regex criteria":
     for r in [re"", re"a", re"ab"]:
       testCriteria(ckRegex, r, check c.reg == r)
+
 
 suite "creating invalid criteria":
 
@@ -96,3 +76,63 @@ suite "creating invalid criteria":
       discard initCriteria(0.0, "")
       discard initCriteria("", "")
       discard initCriteria(re"", "")
+
+  test "non JSON keys":
+    for key in ["1", " ", "a1", "a "]:
+      expect AssertionDefect:
+        discard initNullCriteria(key)
+        discard initCriteria(false, key)
+        discard initCriteria(0, key)
+        discard initCriteria(0.0, key)
+        discard initCriteria("", key)
+        discard initCriteria(re"", key)
+
+
+
+
+suite "matching criteria":
+
+  let node = parseJson("""
+                       {
+                         "n": null,
+                         "b": true,
+                         "i": 2,
+                         "f": 2.0,
+                         "s": "s",
+                         "o": {
+                           "a": 1,
+                           "b": 2,
+                         },
+                         "a": [1, 2],
+                         "r": "abc"
+                       }
+                       """.dedent)
+
+  test "null criteria":
+    check initNullCriteria("n").eval(node)
+    check not initNullCriteria("b").eval(node)
+
+  test "bool criteria":
+    check initCriteria(true, "b").eval(node)
+    check not initCriteria(false, "b").eval(node)
+    check initOptCriteria(true, "n").eval(node)
+
+  test "int criteria":
+    check initCriteria(2, "i").eval(node)
+    check not initCriteria(0, "i").eval(node)
+    check initOptCriteria(1, "n").eval(node)
+
+  test "float criteria":
+    check initCriteria(2.0, "f").eval(node)
+    check not initCriteria(1.8, "f").eval(node)
+    check initOptCriteria(2.0, "n").eval(node)
+
+  test "string criteria":
+    check initCriteria("s", "s").eval(node)
+    check not initCriteria("", "s").eval(node)
+    check initOptCriteria("s", "n").eval(node)
+
+  test "regex criteria":
+    check initCriteria(re"^abc$", "r").eval(node)
+    check not initCriteria(re"^(?!abc).*$", "r").eval(node)
+    check initOptCriteria(re"^abc$", "n").eval(node)
