@@ -36,7 +36,7 @@ type
     of ckNull: discard
     of ckBool: bval*: bool
     of ckInt: num*: BiggestInt
-    of ckFloat: fnum*: float
+    of ckFloat: fnum*: BiggestFloat
     of ckString: str*: string
     of ckObject: fields*: OrderedTable[string, Criteria]
     of ckArray: elems*: seq[Criteria]
@@ -54,13 +54,25 @@ func initCriteria*(bval: bool, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckBool, bval: bval)
   doAssert keys.len > 0, &"Can't have 0 keys for '{bval}''"
 
-func initCriteria*(num: int, keys: varargs[string]): Criteria =
+func initCriteria*(num: SomeInteger, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckInt, num: num)
   doAssert keys.len > 0, &"Can't have 0 keys for '{num}''"
+
+func initCriteria*(fnum: SomeFloat, keys: varargs[string]): Criteria =
+  result = Criteria(keys: toSeq(keys), optional: false, kind: ckFloat, fnum: fnum)
+  doAssert keys.len > 0, &"Can't have 0 keys for '{fnum}''"
 
 func initCriteria*(str: string, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckString, str: str)
   doAssert keys.len > 0, &"Can't have 0 keys for '{str}''"
+
+func initCriteria*(fields: OrderedTable[string, Criteria], keys: varargs[string]): Criteria =
+  result = Criteria(keys: toSeq(keys), optional: false, kind: ckObject, fields: fields)
+  doAssert keys.len > 0, &"Can't have 0 keys for '{fields}''"
+
+func initCriteria*(elems: openArray[Criteria], keys: varargs[string]): Criteria =
+  result = Criteria(keys: toSeq(keys), optional: false, kind: ckArray, elems: toSeq(elems))
+  doAssert keys.len > 0, &"Can't have 0 keys for '{elems}''"
 
 func initCriteria*(reg: Regex, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: false, kind: ckRegex, reg: reg)
@@ -71,13 +83,25 @@ func initOptCriteria*(bval: bool, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckBool, bval: bval)
   doAssert keys.len > 0, &"Can't have 0 keys for '{bval}''"
 
-func initOptCriteria*(num: int, keys: varargs[string]): Criteria =
+func initOptCriteria*(num: SomeInteger, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckInt, num: num)
   doAssert keys.len > 0, &"Can't have 0 keys for '{num}''"
+
+func initOptCriteria*(fnum: SomeFloat, keys: varargs[string]): Criteria =
+  result = Criteria(keys: toSeq(keys), optional: true, kind: ckFloat, fnum: fnum)
+  doAssert keys.len > 0, &"Can't have 0 keys for '{fnum}''"
 
 func initOptCriteria*(str: string, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckString, str: str)
   doAssert keys.len > 0, &"Can't have 0 keys for '{str}''"
+
+func initOptCriteria*(fields: OrderedTable[string, Criteria], keys: varargs[string]): Criteria =
+  result = Criteria(keys: toSeq(keys), optional: true, kind: ckObject, fields: fields)
+  doAssert keys.len > 0, &"Can't have 0 keys for '{fields}''"
+
+func initOptCriteria*(elems: openArray[Criteria], keys: varargs[string]): Criteria =
+  result = Criteria(keys: toSeq(keys), optional: true, kind: ckArray, elems: toSeq(elems))
+  doAssert keys.len > 0, &"Can't have 0 keys for '{elems}''"
 
 func initOptCriteria*(reg: Regex, keys: varargs[string]): Criteria =
   result = Criteria(keys: toSeq(keys), optional: true, kind: ckRegex, reg: reg)
